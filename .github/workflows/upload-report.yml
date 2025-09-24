@@ -40,3 +40,4 @@ jobs:
         PROJECT_ID: ${{ secrets.PROJECT_ID }}
         TYPE: katalon
         REPORT_PATH: ${{ github.workspace }}/report
+        SEVER: ${{ secrets.KATALON_SERVER_URL }}
