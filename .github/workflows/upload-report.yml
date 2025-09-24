@@ -1,13 +1,6 @@
 name: Upload Katalon Report
 
 on:
-  repository_dispatch:
-    inputs:
-      upload_count:
-        description: 'Number of times to upload the report'
-        required: true
-        type: number
-        default: 1
   workflow_dispatch:
     inputs:
       upload_count:
