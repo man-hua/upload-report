@@ -1,0 +1,43 @@
+name: Upload Katalon Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_count:
+        description: 'Number of times to upload the report'
+        required: true
+        default: 1
+        type: number
+
+jobs:
+  upload-report:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Upload reports multiple times
+      run: |
+        echo "Uploading report ${{ github.event.inputs.upload_count }} times..."
+        for i in $(seq 1 ${{ github.event.inputs.upload_count }}); do
+          echo "Starting upload attempt #$i"
+          
+          # Run the Katalon uploader
+          docker run --rm \
+            -e PASSWORD=${{ secrets.KATALON_API_KEY }} \
+            -e PROJECT_ID=${{ secrets.PROJECT_ID }} \
+            -e TYPE=katalon \
+            -e REPORT_PATH=/workspace/report \
+            -v ${{ github.workspace }}:/workspace \
+            katalonstudio/report-uploader:v0.0.11
+          
+          echo "Completed upload attempt #$i"
+          
+          # Add a small delay between uploads (except for the last one)
+          if [ $i -lt ${{ github.event.inputs.upload_count }} ]; then
+            echo "Waiting 5 seconds before next upload..."
+            sleep 5
+          fi
+        done
+        echo "All uploads completed!"
