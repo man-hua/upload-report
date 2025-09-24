@@ -1,4 +1,4 @@
-name: Upload Katalon Report
+name: Upload Non-KS Report
 
 on:
   workflow_dispatch:
@@ -8,6 +8,11 @@ on:
         required: true
         type: number
         default: 1
+      file_count:
+        description: 'Number of temporary text files to generate for each upload'
+        required: true
+        type: number
+        default: 3
 
 jobs:
   generate-matrix:
@@ -38,12 +43,28 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '11'
+        
+    - name: Generate temporary text files
+      run: |
+        echo "Generating ${{ github.event.inputs.file_count }} temporary text files for upload #${{ matrix.upload_number }}"
+        
+        # Generate files based on upload count
+        for i in $(seq 1 ${{ github.event.inputs.file_count }}); do
+          temp_file="${{ github.workspace }}/report/non-ks/temp_report_${i}_upload_${{ matrix.upload_number }}.txt"
+          echo "Temporary report file #${i} for upload attempt ${{ matrix.upload_number }}" > "$temp_file"
+          echo "Generated at: $(date)" >> "$temp_file"
+          echo "File Index: ${i}" >> "$temp_file"
+        done
+        
+        # List all files in the directory
+        echo "Files in report/non-ks directory:"
+        ls -la ${{ github.workspace }}/report/non-ks/
       
     - name: Katalon Report Uploader (Upload #${{ matrix.upload_number }})
       run: |
         java -jar ${{ github.workspace }}/katalon-report-uploader-0.0.11.jar \
           --projectId=${{ secrets.PROJECT_ID }} \
-          --path="${{ github.workspace }}/report/ks" \
+          --path="${{ github.workspace }}/report/non-ks" \
           --password=${{ secrets.KATALON_API_KEY }} \
           --type=katalon \
           --push-to-xray=false \
