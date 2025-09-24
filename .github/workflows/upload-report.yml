@@ -33,11 +33,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+      
     - name: Katalon Report Uploader (Upload #${{ matrix.upload_number }})
-      uses: katalon-studio/report-uploader@v0.0.11
-      env:
-        PASSWORD: ${{ secrets.KATALON_API_KEY }}
-        PROJECT_ID: ${{ secrets.PROJECT_ID }}
-        TYPE: katalon
-        REPORT_PATH: ${{ github.workspace }}/report
-        SEVER: ${{ secrets.KATALON_SERVER_URL }}
+      run: |
+        java -jar ${{ github.workspace }}/katalon-report-uploader-0.0.11.jar \
+          --projectId=${{ secrets.PROJECT_ID }} \
+          --path="${{ github.workspace }}/report" \
+          --password=${{ secrets.KATALON_API_KEY }} \
+          --type=katalon \
+          --push-to-xray=false \
+          --server=${{ secrets.KATALON_SERVER_URL }}
