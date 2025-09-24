@@ -10,34 +10,33 @@ on:
         type: number
 
 jobs:
-  upload-report:
+  generate-matrix:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Generate upload matrix
+        id: set-matrix
+        run: |
+          count=${{ github.event.inputs.upload_count }}
+          matrix=$(seq -s, 1 $count | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+  upload-report:
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        upload_number: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Upload reports multiple times
-      run: |
-        echo "Uploading report ${{ github.event.inputs.upload_count }} times..."
-        for i in $(seq 1 ${{ github.event.inputs.upload_count }}); do
-          echo "Starting upload attempt #$i"
-          
-          # Run the Katalon uploader
-          docker run --rm \
-            -e PASSWORD=${{ secrets.KATALON_API_KEY }} \
-            -e PROJECT_ID=${{ secrets.PROJECT_ID }} \
-            -e TYPE=katalon \
-            -e REPORT_PATH=/workspace/report \
-            -v ${{ github.workspace }}:/workspace \
-            katalonstudio/report-uploader:v0.0.11
-          
-          echo "Completed upload attempt #$i"
-          
-          # Add a small delay between uploads (except for the last one)
-          if [ $i -lt ${{ github.event.inputs.upload_count }} ]; then
-            echo "Waiting 5 seconds before next upload..."
-            sleep 5
-          fi
-        done
-        echo "All uploads completed!"
+    - name: Katalon Report Uploader (Upload #${{ matrix.upload_number }})
+      uses: katalon-studio/report-uploader@v0.0.11
+      env:
+        PASSWORD: ${{ secrets.KATALON_API_KEY }}
+        PROJECT_ID: ${{ secrets.PROJECT_ID }}
+        TYPE: katalon
+        REPORT_PATH: ${{ github.workspace }}/report
